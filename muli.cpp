@@ -33,6 +33,7 @@ public:
 	atomic_vector(const int length):items(length),vector_mutex(PTHREAD_MUTEX_INITIALIZER){
 	}
 	~atomic_vector(){
+		items.clear();
 		pthread_mutex_destroy(&vector_mutex);
 	}
 	T& operator[](int index){
@@ -45,6 +46,9 @@ public:
 	void reserve(const int size){
 		lock start(vector_mutex); // it locks!
 		items.reserve(size);
+	}
+	void clear(){
+		items.clear();
 	}
 	int size() const { return items.size();}
 	bool empty() const { return items.empty(); }
@@ -62,15 +66,6 @@ public:
 			perror("epoll_create");
 			exit(1);
 		}
-		pipe(awaker);
-		
-		epoll_event tmp;
-		tmp.events = EPOLLIN |EPOLLET;
-		tmp.data.fd = awaker[0];
-		if (epoll_ctl(epollfd, EPOLL_CTL_ADD, awaker[0], &tmp) == -1) {
-			perror("epoll_ctl: add fd.");
-			exit(1);
-		}
 	}
 	void add(const int fd, const event ev){
 		if(fd > TableSize){
@@ -84,7 +79,6 @@ public:
 			perror("epoll_ctl: add fd.");
 			exit(1);
 		}
-		write(awaker[1],"",1);
 	}
 	void remove(const int fd){
 		FdTable[fd] = 0;
@@ -94,7 +88,6 @@ public:
 			perror("epoll_ctl: remove fd.");
 			exit(1);
 		}
-		write(awaker[1],"",1);
 	}
 	void add_oneshot(const int fd, const event ev){
 		add(fd, static_cast<event>(static_cast<int>(ev) | EPOLLONESHOT));
@@ -108,11 +101,10 @@ public:
 			perror("epoll_ctl: add fd.");
 			exit(1);
 		}
-		write(awaker[1],"",1);
 	}
 	
 	int wait(int maxevent, std::vector<int>* fds){
-		epoll_event events[maxevent];
+		epoll_event events[maxevent]; 
 	awaked:
 		const int nfds = epoll_wait(epollfd, events, maxevent, -1);
 		if (nfds == -1) {
@@ -136,9 +128,6 @@ private:
 	atomic_vector<int> FdTable;
 	int awaker[2];
 };
-
-
-
 
 
 template<typename T>
@@ -167,13 +156,19 @@ public:
 		}
 	}
 	void add(const int fd,cb_func func){
+		lock start(&poll_mutex);
 		cb_item* it = items.add(fd,new cb_item(fd,func));
-		poll.add_oneshot(fd,poller::READ);
 		it->func = func;
+		poll.add_oneshot(fd,poller::READ);
 	}
 	void remove(const int fd){
-		items.remove(fd);
+		lock start(&poll_mutex);
 		poll.remove(fd);
+		items.remove(fd);
+	}
+	~muli(){
+		pthread_mutex_destroy(&poll_mutex);
+		multi_fds.clear();
 	}
 private:
 	class cb_item{
@@ -185,6 +180,12 @@ private:
 		cb_item():item(),func(){};
 		cb_item(const cb_item&);
 		cb_item& operator=(const cb_item&);
+	};
+	class lock{
+		pthread_mutex_t* l;
+	public:
+		lock(pthread_mutex_t* _l):l(_l){ pthread_mutex_lock(l);}
+		~lock(){ pthread_mutex_unlock(l);}
 	};
 	
 	poller poll;
@@ -213,6 +214,7 @@ public:
 		set_nonblock(socket);
 	}
 	~SocketBuffer(void){
+		close(mSocket);
 		free(mBuff);
 	}
 	int read_max(void){
@@ -242,6 +244,18 @@ public:
 	}
 	int isLeft(void) const{
 		return mChecked == mRead;
+	}
+	char* get_ptr() const {
+		return &mBuff[mChecked];
+	}
+	void gain_ptr(const int delta){
+		mChecked += delta;
+	}
+	void back_ptr(const int delta){
+		mChecked -= delta;
+	}
+	bool is_end(void)const{
+		return mRead == mChecked;
 	}
 	void dump()const{
 		for(unsigned int i=0;i<mChecked;i++){

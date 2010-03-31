@@ -1,4 +1,5 @@
-
+#ifndef TCP_WRAP
+#define TCP_WRAP
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <sys/un.h> // bzero
@@ -17,8 +18,18 @@ int create_tcpsocket(void){
 	return fd;
 }
 
+int aton(const char* ipaddress){
+	struct in_addr tmp_inaddr;
+	int ip = 0;
+	if(inet_aton(ipaddress,&tmp_inaddr)){
+		ip = tmp_inaddr.s_addr;
+	}else {
+		printf("aton:address invalid\n");
+	}
+	return ip;
+}
 
-char* my_ntoa(int ip){
+char* ntoa(int ip){
 	struct sockaddr_in tmpAddr;
 	tmpAddr.sin_addr.s_addr = ip;
 	return inet_ntoa(tmpAddr.sin_addr);
@@ -116,3 +127,22 @@ void socket_maximize_rcvbuf(const int socket){
         }
     }
 }
+
+int connect_port_ip(const int socket,const int ip,const unsigned short port){
+	//return 0 if succeed
+	
+	struct sockaddr_in addr;
+	bzero((char*)&addr,sizeof(addr));
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = ip;
+	addr.sin_port=htons(port);
+	
+	if(connect(socket,(struct sockaddr*)&addr,sizeof(addr))){
+		perror("connect");
+		fprintf(stderr,"target:%s\n",ntoa(ip));
+		exit(1);
+		return 1;
+	}
+	return 0;
+}
+#endif
