@@ -8,32 +8,23 @@
 #include "socket_buffer.hpp"
 #include "address_list.hpp"
 #include "muli_sb.hpp"
-;
 
 static const char interrupt[] = {-1,-12,-1,-3,6};
 
 muli<SocketBuffer> mi;
 address_list AddressList;
 
-class MainEvent{
+class Manager{
+private:
+	typedef serializable_int operation;
 public:
-	inline void operator()(const int fd,SocketBuffer* sb)const{
-		AddressList.dump();
-		printf("dump( ");
-		sb->dump();
-		printf(")\n");
-		
-		if(sb->is_end()){
-			fprintf(stderr,"socket closed.\n");
-			close(fd);
-			mi.remove(fd);
-			return;
-		}
-		buffer hello("hello\n");
-		*sb << hello << endl;
+	inline void operator()(int fd,SocketBuffer* sb){
+		operation op;
+		*sb << buffer("ok") << endl;
+		*sb >> op;
+		printf("data:%d\n",op.get());
 	}
 };
-
 
 class Accepter{
 public:
@@ -41,21 +32,21 @@ public:
 		struct sockaddr_in addr;
 		socklen_t addrlen;
 		int newfd = accept(fd,(sockaddr*)(&addr),&addrlen);
-		mi.add(newfd,MainEvent());
+		mi.add(newfd,Manager());
 		AddressList.set_socket(address(addr.sin_addr.s_addr,addr.sin_port),newfd);
-		printf("accept\n");
+		DEBUG_OUT("accept:%d\n",newfd);
 	}
 };
 
 int main(void){
 	int accepter = create_tcpsocket();
+	set_reuse(accepter);
 	bind_inaddr_any(accepter,11011);
 	set_reuse(accepter);
 	
 	listen(accepter,102);
 	
 	mi.add(accepter,Accepter());
-	
 	mi.run();
 	return 0;
 }

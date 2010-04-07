@@ -9,13 +9,13 @@ class item_pool{
 	std::vector<T*> table;
 	
 public:
-	item_pool(void):buffers(),table(bufsize,NULL){
+	item_pool(void):buffers(),table(bufsize){
 		buffers.push_back(NULL);
 	}
 	T* add(const int socket, T* item){
 		T* it; 
-		while(! (socket < (int)table.size())){
-			table.resize(table.size() * 2, NULL);
+		while(!(socket < (int)table.size())){
+			table.resize(table.size() * 2);
 		}
 		if(table[socket] != NULL){
 			it = table[socket];
@@ -31,7 +31,7 @@ public:
 		if(table[socket] != NULL){
 			it = table[socket];
 		}else{
-			assert(!"not exist item");
+			assert(!"not exist item");  
 		}
 		return it;
 	}
