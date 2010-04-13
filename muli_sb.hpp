@@ -1,5 +1,6 @@
 #ifndef MULI_SOCKETBUFFER
 #define MULI_SOCKETBUFFER
+#include "socket_buffer.hpp"
 
 template <>
 class muli<SocketBuffer>{
@@ -24,9 +25,13 @@ public:
 			
 			it->item.read_max();
 			
-			it->func(WorkFd,&it->item); // do work
-			
-			poll.reset_oneshot(WorkFd,poller::READ);
+			try{
+				it->func(WorkFd,&it->item); // do work
+				poll.reset_oneshot(WorkFd,poller::READ);
+			}catch(...){
+				items.remove(WorkFd);
+				//remove(WorkFd);
+			}
 		}
 	}
 	void add(const int fd,cb_func func){
@@ -36,6 +41,10 @@ public:
 	void remove(const int fd){
 		items.remove(fd);
 		poll.remove(fd);
+	}
+	SocketBuffer* get_item(const int fd){
+		cb_item* it = items.get(fd);
+		return &it->item;
 	}
 private:
 	class cb_item{

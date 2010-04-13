@@ -1,14 +1,17 @@
+#include "tcp_wrap.h"
+#include <boost/functional/hash.hpp>
 
 class address : public serializable {
 private:
 	int ip;
 	unsigned short port;
+	friend size_t hash_value(const address& ad);
 public:
 	address():ip(aton("127.0.0.1")),port(11211){};
 	address(const int _ip,const unsigned short _port):ip(_ip),port(_port){};
 	address(const address& ad):ip(ad.ip),port(ad.port){}
 	bool operator<(const address& rhs)const{
-		return ip < rhs.ip;
+		return ip < rhs.ip && port < rhs.port;
 	}
 	int get_ip()const {return ip;}
 	void dump(void)const{
@@ -29,7 +32,21 @@ public:
 		return 6;
 	}
 	unsigned int getLength()const {return 6;}
+	bool operator==(const address& rhs)const {
+		return ip == rhs.ip && port == rhs.port;
+	}
+	bool operator!=(const address& rhs)const{
+		return ip != rhs.ip || port != rhs.port;
+	}
 };
+
+size_t hash_value(const address& ad){
+	size_t h = 0;
+	boost::hash_combine(h, ad.ip);
+	boost::hash_combine(h, ad.port);
+	return h;
+}
+
 
 class address_list{
 private:
@@ -51,13 +68,17 @@ public:
 	}
 	int get_socket_force(const address& ad){
 		lock start(&mut);
+		int socket;
 		std::map<address,int>::const_iterator it = addmap.find(ad);
 		if(it == addmap.end()){
-			int newsocket = create_tcpsocket();
-			int result = connect_port_ip(newsocket,ad.get_ip(),ad.get_port());
+			socket = create_tcpsocket();
+			int result = connect_ip_port(socket,ad.get_ip(),ad.get_port());
 			if(result) {assert(!"connect error.");}
-			addmap.insert(std::pair<address,int>(ad,newsocket));
+			addmap.insert(std::pair<address,int>(ad,socket));
+		}else{
+			socket = it->second;
 		}
+		return socket;
 	}
 	void set_socket(const address& ad,int socket) {
 		lock start(&mut);

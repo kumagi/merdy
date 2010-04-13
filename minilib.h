@@ -1,6 +1,5 @@
 
-
-unsigned int cut_up(unsigned int i) __attribute__((always_inline));
+//unsigned int cut_up(unsigned int i) __attribute__((always_inline));
 
 unsigned int cut_up(unsigned int i){
 	if(i == 0){return 1;}

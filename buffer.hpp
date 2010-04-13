@@ -1,10 +1,12 @@
 #include <string>
+#include <string.h>
+#include <assert.h>
 
 // interface
 class serializable{
 public:
-	virtual unsigned int serialize(char* const ptr) const = 0;
-	virtual unsigned int deserialize(const char* const ptr) = 0;
+	virtual unsigned int serialize(char* ptr) const = 0;
+	virtual unsigned int deserialize(const char* ptr) = 0;
 	virtual unsigned int getLength(void) const = 0;
 };
 
@@ -63,6 +65,8 @@ public:
 class serializable_int : public serializable{
 	int data;
 public:
+	serializable_int():data(){}
+	serializable_int(const int _data):data(_data){};
 	unsigned int serialize(char* const ptr) const {
 		int* intp = (int*)ptr;
 		*intp = data;
@@ -83,16 +87,19 @@ public:
 		data = _data.data;
 		return *this;
 	}
-	int get()const{
+	inline int get()const{
 		return data;
 	}
 };
 
+/*
 class serializable_string : public serializable{
 	std::string str;
 	
 public:
+	serializable_string(void):str(){ }
 	serializable_string(std::string _str):str(_str){ }
+	serializable_string(const char* const _str):str(_str){ }
 	serializable_string& operator=(std::string _str){
 		str = _str;
 		return *this;
@@ -102,9 +109,8 @@ public:
 		return *this;
 	}
 	unsigned int serialize(char* const ptr) const {
-		for(unsigned int i=0;i<str.length();i++){
-			*ptr = str.data()[i];
-		}
+		assert(ptr != NULL);
+		memcpy(ptr,str.data(),str.length());
 		return str.length();
 	}
 	unsigned int deserialize(const char* const ptr){
@@ -113,7 +119,11 @@ public:
 		str.assign(ptr,0,i);
 		return i;
 	}
-	unsigned int getLength()const{
+	inline unsigned int getLength()const{
 		return str.length();
 	}
+	inline const char* c_str(void)const{
+		return str.c_str();
+	}
 };
+*/
