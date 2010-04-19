@@ -19,7 +19,9 @@ namespace op{
 		UPDATE_HASHES,
 		OK_ADD_ME_DY,
 		SET_DY, // search cordinate
+		OK_SET_DY,
 		PUT_DY, // store data without everything
+		OK_PUT_DY,
 		GET_DY,
 		DEL_DY,
 		SET_COORDINATE,

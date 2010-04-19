@@ -2,6 +2,7 @@
 #define SOCKETBUFFER
 #include "buffer.hpp"
 #include "tcp_wrap.h"
+#include <functional>
 
 
 class SocketBuffer{
@@ -10,6 +11,8 @@ private:
 		BUFFSIZE = 1024,
 		FACTOR = 3,
 	};
+	
+	
 	const int mSocket;
 	// receive buffer
 	unsigned int mRead,mChecked,mLeft,mSize;
@@ -34,6 +37,9 @@ public:
 	void back_ptr(const int delta);
 	bool is_end(void)const;
 	void dump()const;
+	
+	template<typename func>
+	void rpc_bind();
 	
 	template<typename obj> 
 	SocketBuffer& operator<<(const obj& data){

@@ -69,9 +69,6 @@ inline long long rand64(void){
 }
 
 
-
-
-
 std::map<dy_data,dy_data> dy_map;
 
 	
@@ -164,6 +161,7 @@ public:
 			dy_data key,value;
 			*sb >> key >> value;
 			dy_map.insert(std::pair<dy_data,dy_data>(key,value));
+			*sb << op::OK_PUT_DY << endl;
 			break;
 		}
 			
@@ -209,7 +207,7 @@ public:
 					fd = AddressList.get_socket_force(putter[i]);
 				}
 				SocketBuffer put(fd);
-				put << op::PUT_DY << key << value << endl; 
+				put << op::PUT_DY << key << value << endl;
 			}
 			break;
 		}
